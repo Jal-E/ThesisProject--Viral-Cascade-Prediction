@@ -7,10 +7,10 @@ import community as community_louvain
 import numpy as np
 
 # Directories for outputs
-NETWORK_DIR = "networks"
-VISUALIZATION_DIR = "visualizations"
-os.makedirs(NETWORK_DIR, exist_ok=True)
-os.makedirs(VISUALIZATION_DIR, exist_ok=True)
+#NETWORK_DIR = "networks"
+#VISUALIZATION_DIR = "visualizations"
+#os.makedirs(NETWORK_DIR, exist_ok=True)
+#os.makedirs(VISUALIZATION_DIR, exist_ok=True)
 
 def get_db_connection():
     engine = create_engine('postgresql://postgres:1234@localhost:5432/Oct')
@@ -43,7 +43,7 @@ def load_and_filter_data(forum_id, min_post_length, min_posts_per_user, min_thre
     # Step 2: Filter topics based on root users
     thread_counts = df.groupby('user_id')['topic_id'].nunique()
 
-    # Explicitly exclude grouping columns
+    # exclude grouping columns
     root_filter = df.groupby('topic_id', group_keys=False).apply(
         lambda group: group.iloc[0][['root_user', 'post_length']]
     )
@@ -90,7 +90,7 @@ def calculate_avg_time_to_adoption(timestamps, adopters):
     return total_time / (len(adoption_times) - 1)
 
 def extract_features(G, adopters, lambda_frontiers, lambda_non_adopters, partition, timestamps, topic_id, group, alpha, beta):
-    # Determine virality: topic is viral if it reaches at least beta posts
+    # Determine virality: topic reaches at least beta posts
     is_viral = int(len(group) >= beta)
 
     # Compute delta_t as the time difference between the first post and the beta-th post
@@ -147,7 +147,7 @@ def process_all_topics_with_global_network(df, alpha, lambda_time, beta):
         if len(group) < alpha:
             continue
 
-        # Determine adopters
+        # Determine alpha adopters
         adopters = group['user_id'].iloc[:alpha].tolist()
         alpha_times = group['dateadded_post'].iloc[:alpha].tolist()
         adopter_to_time = dict(zip(adopters, alpha_times))
@@ -160,7 +160,7 @@ def process_all_topics_with_global_network(df, alpha, lambda_time, beta):
                 for successor in global_G.successors(adopter):
                     edge_data = global_G.get_edge_data(adopter, successor)
                     formed_at = edge_data['formed_at']
-                    if formed_at <= a_time:
+                    if formed_at <= a_time: #historic neighbours of alpha adopters it influences
                         if successor not in frontier_exposures or frontier_exposures[successor] > a_time:
                             frontier_exposures[successor] = a_time
 
@@ -197,7 +197,7 @@ if __name__ == "__main__":
     classification_threshold = 0.5
     lambda_time = 24
     alpha = 10
-    beta = 40  # For virality definition
+    beta = 40  # 4x = viral
 
     df = load_and_filter_data(forum_id, min_post_length, min_posts_per_user, min_threads_per_user, classification_threshold)
     cascade_features = process_all_topics_with_global_network(df, alpha, lambda_time, beta)
