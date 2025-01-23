@@ -13,10 +13,10 @@ df_original = pd.read_csv('cascade_features.csv')
 delta_t_thresholds = [60, 90, 120, 150, 180]  # in days
 delta_t_thresholds_hours = [threshold * 24 for threshold in delta_t_thresholds]
 
-# Create a results DataFrame to save the evaluation metrics
+# DataFrame to save the evaluation metrics
 results = []
 
-# Create a directory to save the models
+# directory to save the models
 models_dir = "rf_models"
 os.makedirs(models_dir, exist_ok=True)
 
@@ -43,7 +43,7 @@ for threshold in delta_t_thresholds_hours:
     X = df.drop(columns=['virality'])
     y = df['virality']
 
-    # Stratified train/test split (70% training, 30% testing)
+    # train/test split (70% training, 30% testing), stratify for minority class
     X_train, X_test, y_train, y_test = train_test_split(
         X, 
         y, 
@@ -58,7 +58,7 @@ for threshold in delta_t_thresholds_hours:
     if y_train.value_counts().get(1, 0) > 1:  # Proceed with SMOTE only if >1 minority sample
         smote = SMOTE(random_state=42, k_neighbors=1)
         X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
-    else:  # Skip SMOTE and use class weighting
+    else:  # Skip SMOTE and use class weighting to avoid crashing
         print("Skipping SMOTE due to insufficient minority samples.")
         X_train_resampled, y_train_resampled = X_train, y_train
 
@@ -75,7 +75,7 @@ for threshold in delta_t_thresholds_hours:
     train_accuracy = accuracy_score(y_train_resampled, y_train_pred)
     test_accuracy = accuracy_score(y_test, y_test_pred)
 
-    # Force classification_report to include both classes (0 and 1):
+    # classification_report should include both classes (0 and 1):
     train_report = classification_report(
         y_train_resampled,
         y_train_pred,
@@ -91,7 +91,7 @@ for threshold in delta_t_thresholds_hours:
         output_dict=True
     )
 
-    # Save results in a dictionary
+    # Save results in the dictionary
     results.append({
         "delta_t_days": threshold / 24,
         "train_accuracy": train_accuracy,
